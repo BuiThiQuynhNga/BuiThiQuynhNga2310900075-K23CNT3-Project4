@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop Online</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body { background: #f5f6fa; font-family: 'Segoe UI', sans-serif; }
+        .card {
+            transition: all 0.3s ease;
+            border: none;
+            border-radius: 12px;
+            overflow: hidden;
+            height: 100%;
+        }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .product-img { height: 220px; width: 100%; object-fit: cover; }
+        .price { font-size: 1.15rem; font-weight: bold; }
+        .category-btn { margin: 5px 3px; border-radius: 30px; padding: 9px 20px; }
+        .category-btn.active { background: #0d6efd; color: white; border: none; }
+        #search { padding: 14px 20px; font-size: 1.1rem; }
+        /* CSS cho nút Đăng nhập Admin */
+        .btn-admin {
+            background-color: #dc3545 !important;
+            color: white !important;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 50px;
+            text-decoration: none;
+            border: none;
+        }
+        .btn-admin:hover {
+            background-color: #c82333 !important;
+            transform: scale(1.05);
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+<nav class="navbar navbar-dark bg-dark px-3 py-3 shadow-sm">
+    <div class="container-fluid">
+        <span class="navbar-brand fw-bold fs-4">Shop Đồ Gia Dụng</span>
+
+        <!-- Dropdown account -->
+        <div class="dropdown">
+            <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                Tài khoản
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" id="menuAccount">
+
+                <li>
+                    <a class="dropdown-item" href="login.html">Đăng nhập</a>
+                </li>
+
+                <li>
+                    <a class="dropdown-item" href="#">Đăng ký</a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="#" onclick="logout()">Đăng xuất</a>
+                </li>
+                <!-- 👇 THÊM CÁI NÀY -->
+                <li id="adminMenu" style="display: none;">
+                    <a class="dropdown-item text-danger fw-bold" href="admin.html">
+                        👉 Vào trang quản trị
+                    </a>
+                </li>
+
+            </ul>
+        </div>
+
+    </div>
+</nav>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<div class="container mt-4">
+    <h3 class="mb-3"> Danh sách sản phẩm</h3>
+
+    <!-- Phân loại -->
+    <div class="mb-4 border-bottom pb-3" id="categoryFilter"></div>
+
+    <!-- Tìm kiếm -->
+    <div class="mb-4">
+        <input type="text" id="search" class="form-control form-control-lg"
+               placeholder="Tìm kiếm sản phẩm "
+               onkeyup="searchProducts()">
+        <div id="resultCount" class="mt-2 text-muted small"></div>
+    </div>
+
+    <!-- Danh sách sản phẩm -->
+    <div class="row" id="productList"></div>
+</div>
+
+<script>
+    const API = "http://localhost:8080/api/products";
+    const BASE_IMAGE = "http://localhost:8080/images/products/";
+
+    let products = [];
+    let currentCategory = "all";
+
+    function loadProducts() {
+        fetch(API)
+            .then(res => res.json())
+            .then(data => {
+                products = data;
+                renderCategoryButtons();
+                searchProducts();
+            })
+            .catch(() => alert(" Không tải được dữ liệu!"));
+    }
+
+    // Render nút category
+    function renderCategoryButtons() {
+        const categories = new Set(["Tất cả"]);
+        products.forEach(p => p.category?.name && categories.add(p.category.name));
+
+        let html = '';
+        categories.forEach(cat => {
+            const active = (cat === "Tất cả" && currentCategory === "all") || cat === currentCategory;
+            html += `<button class="btn btn-outline-primary category-btn ${active ? 'active' : ''}"
+                             onclick="filterByCategory('${cat === "Tất cả" ? "all" : cat}')">${cat}</button>`;
+        });
+        document.getElementById("categoryFilter").innerHTML = html;
+    }
+
+    function filterByCategory(cat) {
+        currentCategory = cat;
+        renderCategoryButtons();
+        searchProducts();
+    }
+
+    // ================= TÌM KIẾM THÔNG MINH (LIÊN QUAN) =================
+    function searchProducts() {
+        const keyword = document.getElementById("search").value.toLowerCase().trim();
+        let filtered = products;
+
+        // Lọc theo danh mục
+        if (currentCategory !== "all") {
+            filtered = filtered.filter(p => p.category && p.category.name === currentCategory);
+        }
+
+        // Tìm kiếm liên quan
+        if (keyword) {
+            const keywords = keyword.split(" ").filter(k => k.length > 0);
+
+            filtered = filtered.filter(p => {
+                const searchText = `
+                    ${p.name || ''}
+                    ${p.description || ''}
+                    ${p.category?.name || ''}
+                    ${p.unit || ''}
+                `.toLowerCase();
+
+
+                return keywords.every(kw => searchText.includes(kw));
+            });
+        }
+
+        // Hiển thị số kết quả
+        document.getElementById("resultCount").textContent =
+            `Tìm thấy ${filtered.length} sản phẩm`;
+
+        renderProductList(filtered);
+    }
+
+    function renderProductList(list) {
+        let html = "";
+        list.forEach(p => {
+            const imgUrl = getImageUrl(p.imageUrl);
+            html += `
+                <div class="col-md-3 col-sm-6 mb-4">
+                    <div class="card shadow-sm h-100">
+                        <img src="${imgUrl}" class="product-img"
+                             onerror="this.src='https://via.placeholder.com/300x200?text=Error+Loading'">
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">${p.name}</h5>
+                            <p class="price text-danger mt-auto">${Number(p.price).toLocaleString('vi-VN')} đ</p>
+                            <button class="btn btn-success mt-2"
+                                    onclick="addToCart(${p.productId}, '${p.name.replace(/'/g, "\\'")}', ${p.price})">
+                                 Thêm vào giỏ hàng
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+        });
+
+        document.getElementById("productList").innerHTML = html ||
+            `<div class="col-12 text-center py-5"><h5 class="text-muted">Không tìm thấy sản phẩm phù hợp</h5></div>`;
+    }
+
+    function getImageUrl(imageUrl) {
+        if (!imageUrl) return "https://via.placeholder.com/300x200?text=No+Image";
+        if (imageUrl.startsWith("http")) return imageUrl;
+        let clean = imageUrl.replace(/^uploads\//, "").replace(/^\/images\/products\//, "").trim();
+        return BASE_IMAGE + encodeURIComponent(clean);
+    }
+
+    let cart = [];
+    function addToCart(id, name, price) {
+        const item = cart.find(i => i.id === id);
+        if (item) item.quantity++;
+        else cart.push({ id, name, price, quantity: 1 });
+        alert(` Đã thêm "${name}" vào giỏ hàng!`);
+    }
+
+    window.onload = loadProducts;
+
+</script>
+<script>
+    const user = JSON.parse(localStorage.getItem("currentLogin"));
+
+    console.log("USER:", user); // 👈 kiểm tra
+
+    if (user && user.role === "ADMIN") {
+        document.getElementById("adminMenu").style.display = "block";
+    }
+</script>
+<script>
+    function logout() {
+        localStorage.removeItem("currentLogin");
+        location.reload();
+    }
+</script>
+</body>
+</html>

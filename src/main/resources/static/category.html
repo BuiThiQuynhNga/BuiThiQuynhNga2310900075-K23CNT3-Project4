@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Category</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f9f9f9; }
+        h2 { color: #333; }
+        input, select, button { padding: 10px; margin: 5px; font-size: 14px; }
+        button { cursor: pointer; border: none; border-radius: 4px; padding: 10px 16px; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-secondary { background-color: #6c757d; color: white; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; background: white; }
+        th, td { border: 1px solid #ccc; padding: 12px; text-align: center; }
+        th { background-color: #f2f2f2; }
+        .stt { font-weight: bold; color: #d32f2f; }
+        .real-id { color: #666; font-size: 0.95em; }
+    </style>
+</head>
+<body>
+
+<h2>QUẢN LÝ DANH MỤC (CATEGORY)</h2>
+
+<!-- Hidden field để lưu ID khi sửa -->
+<input type="hidden" id="categoryId">
+
+<input type="text" id="name" placeholder="Tên danh mục" style="width: 280px;">
+<input type="text" id="description" placeholder="Mô tả" style="width: 350px;">
+<select id="status">
+    <option value="active">Hoạt động</option>
+    <option value="inactive">Không hoạt động</option>
+</select>
+
+<button onclick="addCategory()" class="btn-primary">Thêm mới</button>
+<button onclick="updateCategory()" class="btn-primary">Cập nhật</button>
+<button onclick="clearForm()" class="btn-secondary">Làm mới</button>
+
+<table>
+    <thead>
+    <tr>
+        <th>STT</th>
+        <th>ID thật</th>
+        <th>Tên danh mục</th>
+        <th>Mô tả</th>
+        <th>Trạng thái</th>
+        <th>Hành động</th>
+    </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+</table>
+
+<script>
+    const API = "http://localhost:8080/api/categories";
+
+    function loadData() {
+        fetch(API)
+            .then(res => res.ok ? res.json() : Promise.reject("Lỗi server"))
+            .then(data => {
+                let html = "";
+                data.forEach((c, index) => {
+                    const realId = c.id || c.categoryId || c.category_id || 'N/A';
+                    html += `
+                        <tr>
+                            <td class="stt">${index + 1}</td>
+                            <td class="real-id">${realId}</td>
+                            <td>${c.name || ''}</td>
+                            <td>${c.description || ''}</td>
+                            <td>${c.status === 'active' ? ' Hoạt động' : ' Không hoạt động'}</td>
+                            <td>
+                                <button onclick="editCategory(${realId}, '${(c.name || '').replace(/'/g, "\\'")}', '${(c.description || '').replace(/'/g, "\\'")}', '${c.status || 'active'}')">Sửa</button>
+                                <button class="btn-danger" onclick="deleteCategory(${realId})">Xóa</button>
+                            </td>
+                        </tr>`;
+                });
+                document.getElementById("tableBody").innerHTML = html || "<tr><td colspan='6'>Không có dữ liệu</td></tr>";
+            })
+            .catch(err => {
+                console.error(err);
+                alert("Không tải được dữ liệu: " + err);
+            });
+    }
+
+    function addCategory() {
+        const data = {
+            name: document.getElementById("name").value.trim(),
+            description: document.getElementById("description").value.trim(),
+            status: document.getElementById("status").value
+        };
+
+        if (!data.name) return alert("Vui lòng nhập tên danh mục!");
+
+        fetch(API, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        })
+            .then(() => {
+                loadData();
+                clearForm();
+                alert("Thêm danh mục thành công!");
+            })
+            .catch(() => alert("Thêm thất bại!"));
+    }
+
+    function editCategory(id, name, description, status) {
+        document.getElementById("categoryId").value = id;
+        document.getElementById("name").value = name;
+        document.getElementById("description").value = description;
+        document.getElementById("status").value = status;
+    }
+
+    function updateCategory() {
+        const id = document.getElementById("categoryId").value;
+        if (!id) return alert("Vui lòng chọn danh mục cần sửa từ bảng!");
+
+        const data = {
+            name: document.getElementById("name").value.trim(),
+            description: document.getElementById("description").value.trim(),
+            status: document.getElementById("status").value
+        };
+
+        fetch(`${API}/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        })
+            .then(() => {
+                loadData();
+                clearForm();
+                alert("Cập nhật thành công!");
+            })
+            .catch(() => alert("Cập nhật thất bại!"));
+    }
+
+    function deleteCategory(id) {
+        if (confirm(`Bạn chắc chắn muốn xóa danh mục ID ${id} không?`)) {
+            fetch(`${API}/${id}`, { method: "DELETE" })
+                .then(() => {
+                    loadData();
+                    alert("Xóa thành công!");
+                })
+                .catch(() => alert("Xóa thất bại!"));
+        }
+    }
+
+    function clearForm() {
+        document.getElementById("categoryId").value = "";
+        document.getElementById("name").value = "";
+        document.getElementById("description").value = "";
+    }
+
+    // Tự động tải dữ liệu khi mở trang
+    window.onload = loadData;
+</script>
+
+</body>
+</html>

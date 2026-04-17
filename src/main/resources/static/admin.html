@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Quản lý Shop</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f8f9fa; }
+        .sidebar {
+            background: #2c3e50;
+            color: white;
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+        .sidebar a {
+            color: #ddd;
+            padding: 12px 20px;
+            display: block;
+            text-decoration: none;
+        }
+        .sidebar a:hover, .sidebar a.active {
+            background: #34495e;
+            color: white;
+        }
+        .main-content { padding: 30px; }
+        .stat-card {
+            border-radius: 12px;
+            transition: 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<script>
+    const user = JSON.parse(localStorage.getItem("currentLogin"));
+
+    if (!user || !user.role || !user.role.includes("ADMIN")) {
+        alert("Bạn không có quyền!");
+        window.location.href = "index.html";
+    }
+</script>
+<body>
+
+<div class="container-fluid">
+    <div class="row">
+
+
+        <div class="col-md-2 sidebar">
+            <div class="px-3 mb-4">
+                <h4>🛠 Admin Panel</h4>
+            </div>
+            <a href="#" onclick="showSection(1)" class="active" id="menu1"> Tổng quan Danh mục</a>
+            <a href="product.html" onclick="showSection(2)" id="menu2"> Quản lý Sản phẩm</a>
+            <a href="category.html" onclick="showSection(3)" id="menu3"> Quản lý Danh mục</a>
+            <a href="order.html" onclick="showSection(4)" id="menu4"> Quản lý Đơn hàng</a>
+            <a href="/index.html" class="mt-4"> Về Trang Chủ</a>
+        </div>
+
+
+        <div class="col-md-10 main-content">
+
+            <!-- Section 1: Tổng hợp số lượng theo danh mục (Mặc định) -->
+            <div id="section1">
+                <h2> Tổng hợp số lượng theo Danh mục</h2>
+                <div class="row" id="categoryStats"></div>
+            </div>
+
+            <!-- Các section khác (có thể mở rộng sau) -->
+            <div id="section2" style="display:none;">
+                <h2> Quản lý Sản phẩm</h2>
+                <p class="text-muted">Chức năng quản lý chi tiết sản phẩm...</p>
+            </div>
+            <div id="section3" style="display:none;">
+                <h2> Quản lý Danh mục</h2>
+                <p class="text-muted">Chức năng quản lý danh mục...</p>
+            </div>
+            <div id="section4" style="display:none;">
+                <h2> Quản lý Đơn hàng</h2>
+                <p class="text-muted">Chức năng quản lý đơn hàng...</p>
+            </div>
+            <a href="#" onclick="logout()" class="mt-4 text-danger">
+                 Đăng xuất
+            </a>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function showSection(n) {
+        document.querySelectorAll('.main-content > div').forEach(div => {
+            div.style.display = 'none';
+        });
+        document.getElementById(`section${n}`).style.display = 'block';
+
+        document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+        document.getElementById(`menu${n}`).classList.add('active');
+    }
+
+    // Dữ liệu tổng hợp danh mục (bạn có thể thay bằng fetch API sau)
+    const categoryData = [
+        { name: "Nhà bếp", count: 28, color: "primary" },
+        { name: "Phòng ngủ", count: 12, color: "success" },
+        { name: "Phòng khách", count: 9,  color: "info" },
+        { name: "Đồ dùng cá nhân", count: 15, color: "warning" },
+        { name: "Thiết bị điện", count: 7, color: "danger" }
+    ];
+
+    function renderCategoryStats() {
+        let html = "";
+        let total = 0;
+
+        categoryData.forEach(cat => {
+            total += cat.count;
+            html += `
+                <div class="col-md-4 mb-4">
+                    <div class="card stat-card border-${cat.color} h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">${cat.name}</h5>
+                            <h2 class="text-${cat.color} mb-0">${cat.count}</h2>
+                            <p class="text-muted">sản phẩm</p>
+                        </div>
+                    </div>
+                </div>`;
+        });
+
+        // Thẻ tổng tất cả
+        html = `
+            <div class="col-12 mb-4">
+                <div class="card stat-card bg-dark text-white">
+                    <div class="card-body">
+                        <h5>TỔNG SẢN PHẨM</h5>
+                        <h1 class="mb-0">${total}</h1>
+                    </div>
+                </div>
+            </div>` + html;
+
+        document.getElementById("categoryStats").innerHTML = html;
+    }
+
+    // Khởi chạy
+    window.onload = () => {
+        showSection(1);
+        renderCategoryStats();
+    };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
